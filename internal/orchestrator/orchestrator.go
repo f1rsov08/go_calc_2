@@ -249,7 +249,7 @@ func getOperationTime(operation string) int {
 func getResult(input string) (int, float64, error) {
 	if strings.HasPrefix(input, "id") {
 		id, err := strconv.Atoi(strings.TrimPrefix(input, "id"))
-		if err != nil || id < 0 || id >= len(store.Tasks) {
+		if err != nil {
 			return -1, 0, fmt.Errorf("invalid task id")
 		}
 
