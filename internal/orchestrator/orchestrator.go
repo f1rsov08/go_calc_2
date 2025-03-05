@@ -127,7 +127,7 @@ func AddExpressions(w http.ResponseWriter, r *http.Request) {
 		store.Expressions = append(store.Expressions, Expression{ID: id, Status: "complete", Answer: 0, Result: result})
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"id": id,
 	})
