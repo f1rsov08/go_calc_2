@@ -345,11 +345,7 @@ curl -X POST --location 'localhost:8080/internal/task' \
 ```
 #### Невалидные данные
 ```bash
-curl -X POST --location 'localhost:8080/internal/task' \
---header 'Content-Type: application/json' \
---data '{
-  "id": 0
-}'
+curl -X POST --location 'localhost:8080/internal/task'
 ```
 Ожидаемый ответ:
 ```json
