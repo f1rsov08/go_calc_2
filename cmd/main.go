@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/f1rsov08/go_calc_2/internal/agent"
 	"github.com/f1rsov08/go_calc_2/internal/orchestrator"
-	"github.com/f1rsov08/go_calc_2/internal/web"
 
 	"github.com/joho/godotenv"
 )
@@ -14,6 +13,5 @@ func main() {
 	agent_app := agent.New()
 	go orchestrator_app.RunServer()
 	go agent_app.Run()
-	go web.Main()
 	select {}
 }
