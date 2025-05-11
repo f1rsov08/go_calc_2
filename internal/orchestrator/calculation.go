@@ -1,33 +1,16 @@
 package orchestrator
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"database/sql"
+
+	_ "github.com/mattn/go-sqlite3"
 )
-
-func generateId(entityType string) int {
-	var ids []int
-	switch entityType {
-	case "expressions":
-		for _, expr := range store.Expressions {
-			ids = append(ids, expr.ID)
-		}
-	case "tasks":
-		for _, task := range store.Tasks {
-			ids = append(ids, task.ID)
-		}
-	default:
-		return 0
-	}
-
-	for i := 0; ; i++ {
-		if !contains(ids, i) {
-			return i
-		}
-	}
-}
 
 func contains(ids []int, id int) bool {
 	for _, existingId := range ids {
@@ -81,7 +64,12 @@ func isValidOperation(c rune) bool {
 
 // Calc выполняет вычисление математического выражения, переданного в виде строки
 func Calc(expression string, id int) (string, error) {
-	var err error
+	db, err := sql.Open("sqlite3", "store.db")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
 	// Удаляем пробелы из выражения
 	expression = strings.ReplaceAll(expression, " ", "")
 
@@ -116,18 +104,20 @@ func Calc(expression string, id int) (string, error) {
 
 	// Выполняем вычисления до тех пор, пока не останется одно значение
 	for len(s) != 1 {
-		new_id = generateId("tasks")
 		if ind = indexOf(s, "*/"); ind != -1 {
-			store.Tasks = append(store.Tasks, Task{ID: new_id, ExpressionID: id, Arg1: s[ind-1], Arg2: s[ind+1], Operation: s[ind], Status: "waiting", Result: 0.0})
+			new_id, err = insertTask(context.Background(), db, Task{ExpressionID: id, Arg1: s[ind-1], Arg2: s[ind+1], Operation: s[ind], Status: "waiting", Result: 0.0})
 		} else if ind = indexOf(s, "+-"); ind != -1 {
-			store.Tasks = append(store.Tasks, Task{ID: new_id, ExpressionID: id, Arg1: s[ind-1], Arg2: s[ind+1], Operation: s[ind], Status: "waiting", Result: 0.0})
+			new_id, err = insertTask(context.Background(), db, Task{ExpressionID: id, Arg1: s[ind-1], Arg2: s[ind+1], Operation: s[ind], Status: "waiting", Result: 0.0})
+		}
+		if err != nil {
+			return "", err
 		}
 		// Обновляем срез и убираем использованные элементы
 		s[ind+1] = "id" + strconv.Itoa(new_id)
 		s = append(s[:ind-1], s[ind+1:]...)
 	}
 	// Возвращаем результат вычисления как float64
-	return s[0], err
+	return s[0], nil
 }
 
 // evaluate решает выражения в скобках

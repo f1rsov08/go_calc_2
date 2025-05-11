@@ -11,7 +11,7 @@ func main() {
 	godotenv.Load(".env")
 	orchestrator_app := orchestrator.New()
 	agent_app := agent.New()
-	go orchestrator_app.RunServer()
+	orchestrator_app.RunServer()
 	go agent_app.Run()
 	select {}
 }

@@ -1,13 +1,14 @@
 package agent
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
+	"context"
 	"os"
 	"strconv"
 	"time"
+
+	pb "github.com/f1rsov08/go_calc_2/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Config struct {
@@ -49,12 +50,19 @@ func New() *Application {
 
 // Метод для запуска HTTP-сервера
 func (a *Application) Run() {
+	conn, err := grpc.NewClient("localhost:50042", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		panic(err)
+	}
+
+	client := pb.NewTaskServiceClient(conn)
+
 	for i := 0; i < a.config.ComputingPower; i++ {
 		go func() {
 			for {
-				task, err := fetchTask()
+				taskResponse, err := client.GetTask(context.Background(), &pb.GetTaskRequest{})
 				if err == nil {
-					compute(task)
+					compute(client, taskResponse.Task)
 				}
 				time.Sleep(time.Duration(a.config.WaitTime) * time.Millisecond)
 			}
@@ -62,69 +70,33 @@ func (a *Application) Run() {
 	}
 }
 
-type TaskResponse struct {
-	Task Task `json:"task"`
-}
-
-type Task struct {
-	ID            int     `json:"id"`
-	Arg1          float64 `json:"arg1"`
-	Arg2          float64 `json:"arg2"`
-	Operation     string  `json:"operation"`
-	OperationTime int     `json:"operation_time"`
-}
-
-func fetchTask() (*Task, error) {
-	resp, err := http.Get("http://localhost:8080/internal/task")
-	if err != nil {
-		return nil, err
+func sendResult(client pb.TaskServiceClient, taskID int64, result float32) error {
+	data := &pb.PostResultRequest{
+		Id:     int64(taskID),
+		Result: float32(result),
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("no task available")
-	}
-
-	var taskResponse TaskResponse
-	if err := json.NewDecoder(resp.Body).Decode(&taskResponse); err != nil {
-		return nil, err
-	}
-	return &taskResponse.Task, nil
-}
-
-func sendResult(taskID int, result float64) error {
-	data := map[string]interface{}{
-		"id":     taskID,
-		"result": result,
-	}
-	body, _ := json.Marshal(data)
-
-	resp, err := http.Post("http://localhost:8080/internal/task", "application/json", bytes.NewBuffer(body))
+	_, err := client.PostResult(context.Background(), data)
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
 	return nil
 }
 
-func sendError(taskID int) error {
-	data := map[string]interface{}{
-		"id":    taskID,
-		"error": "division by zero",
+func sendError(client pb.TaskServiceClient, taskID int64) error {
+	data := &pb.PostResultRequest{
+		Id:    int64(taskID),
+		Error: "division by zero",
 	}
-	body, _ := json.Marshal(data)
-
-	resp, err := http.Post("http://localhost:8080/internal/task", "application/json", bytes.NewBuffer(body))
+	_, err := client.PostResult(context.Background(), data)
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
 	return nil
 }
 
-func compute(task *Task) {
+func compute(client pb.TaskServiceClient, task *pb.Task) {
 	time.Sleep(time.Duration(task.OperationTime) * time.Millisecond)
-	var result float64
+	var result float32
 	switch task.Operation {
 	case "+":
 		result = task.Arg1 + task.Arg2
@@ -136,9 +108,9 @@ func compute(task *Task) {
 		if task.Arg2 != 0 {
 			result = task.Arg1 / task.Arg2
 		} else {
-			sendError(task.ID)
+			sendError(client, task.Id)
 			return
 		}
 	}
-	sendResult(task.ID, result)
+	sendResult(client, task.Id, result)
 }
