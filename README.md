@@ -60,10 +60,10 @@ POST /api/v1/register
   "status": "OK"
 }
 ```
-##### Невалидные данные (HTTP 422)
+##### Отсутствует логин или пароль (HTTP 400)
 ```json
 {
-  "error": "Unprocessable Entity"
+  "error": "Bad Request"
 }
 ```
 ##### Что-то пошло не так (HTTP 500)
@@ -92,16 +92,16 @@ POST /api/v1/login
   "token": <JWT токен для последующей авторизации>
 }
 ```
+##### Отсутствует логин или пароль (HTTP 400)
+```json
+{
+  "error": "Bad Request"
+}
+```
 ##### Неверный логин или пароль (HTTP 401)
 ```json
 {
   "error": "Unauthorized"
-}
-```
-##### Невалидные данные (HTTP 422)
-```json
-{
-  "error": "Unprocessable Entity"
 }
 ```
 ##### Что-то пошло не так (HTTP 500)
@@ -255,7 +255,7 @@ curl --location 'localhost:8080/api/v1/register' \
 Ответ:
 ```json
 {
-  "error": "Unprocessable Entity"
+  "error": "Bad Request"
 }
 ```
 ### Вход
@@ -300,7 +300,7 @@ curl --location 'localhost:8080/api/v1/login' \
 Ответ:
 ```json
 {
-  "error": "Unprocessable Entity"
+  "error": "Bad Request"
 }
 ```
 ### Добавление вычисления арифметического выражения
