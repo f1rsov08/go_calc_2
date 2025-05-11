@@ -41,6 +41,78 @@ go run cmd/main.go
 
 ## Использование
 
+### Регистрация
+#### Эндпоинт
+```
+POST /api/v1/register
+```
+#### Запрос
+```json
+{
+  "login": <логин>,
+  "password": <пароль>
+}
+```
+#### Ответы
+##### Регистрация прошла успешно (HTTP 200)
+```json
+{
+  "status": "OK"
+}
+```
+##### Невалидные данные (HTTP 422)
+```json
+{
+  "error": "Unprocessable Entity"
+}
+```
+##### Что-то пошло не так (HTTP 500)
+```json
+{
+  "error": "Internal Server Error"
+}
+```
+
+### Вход
+#### Эндпоинт
+```
+POST /api/v1/login
+```
+#### Запрос
+```json
+{
+  "login": <логин>,
+  "password": <пароль>
+}
+```
+#### Ответы
+##### Успешный вход (HTTP 200)
+```json
+{
+  "token": <JWT токен для последующей авторизации>
+}
+```
+##### Неверный логин или пароль (HTTP 401)
+```json
+{
+  "error": "Unauthorized"
+}
+```
+##### Невалидные данные (HTTP 422)
+```json
+{
+  "error": "Unprocessable Entity"
+}
+```
+##### Что-то пошло не так (HTTP 500)
+```json
+{
+  "error": "Internal Server Error"
+}
+```
+
+> [!WARNING]  
+> ## У всех последующих запросов в заголовке должен быть JWT-токен! ```Authorization: Bearer <токен>```
 ### Добавление вычисления арифметического выражения
 #### Эндпоинт
 ```
@@ -57,6 +129,12 @@ POST /api/v1/calculate
 ```json
 {
   "id": <уникальный идентификатор выражения>
+}
+```
+##### Неверный токен (HTTP 401)
+```json
+{
+  "error": "Unauthorized"
 }
 ```
 ##### Невалидные данные (HTTP 422)
@@ -100,14 +178,18 @@ GET /api/v1/expressions
 * waiting - выражение ждет вычисления
 * complete - выражение вычислено
 * error - ошибка во время вычисления
+##### Неверный токен (HTTP 401)
+```json
+{
+  "error": "Unauthorized"
+}
+```
 ##### Что-то пошло не так (HTTP 500)
 ```json
 {
   "error": "Internal Server Error"
 }
 ```
-
-
 
 ### Получение выражения по его идентификатору
 #### Эндпоинт
@@ -126,6 +208,12 @@ GET /api/v1/expressions/:id
         }
 }
 ```
+##### Доступ к выражению запрещен (HTTP 403)
+```json
+{
+  "error": "Forbidden"
+}
+```
 ##### Нет такого выражения (HTTP 404)
 ```json
 {
@@ -139,76 +227,87 @@ GET /api/v1/expressions/:id
 }
 ```
 
-### Получение задачи для выполнения
-#### Эндпоинт
+## Примеры использования
+### Регистрация
+#### Успешный ответ
+```bash
+curl --location 'localhost:8080/api/v1/register' \
+--header 'Content-Type: application/json' \
+--data '{
+  "login": "ivanivanov",
+  "password": "12345678"
+}'
 ```
-GET /internal/task
-```
-#### Ответы
-##### Успешно получена задача (HTTP 200)
-```json
-{
-    "task":
-        {
-            "id": <идентификатор задачи>,
-            "arg1": <имя первого аргумента>,
-            "arg2": <имя второго аргумента>,
-            "operation": <операция>,
-            "operation_time": <время выполнения операции>
-        }
-}
-```
-##### Нет задачи (HTTP 404)
-```json
-{
-  "error": "Not Found"
-}
-```
-##### Что-то пошло не так (HTTP 500)
-```json
-{
-  "error": "Internal Server Error"
-}
-```
-
-
-### Прием результата обработки данных
-#### Эндпоинт
-```
-POST /internal/task
-```
-#### Ответы
-##### Успешно записан результат (HTTP 200)
+Ответ:
 ```json
 {
   "status": "OK"
 }
 ```
-##### Нет такой задачи (HTTP 404)
-```json
-{
-  "error": "Not Found"
-}
+#### Невалидные данные
+```bash
+curl --location 'localhost:8080/api/v1/register' \
+--header 'Content-Type: application/json' \
+--data '{
+  "login": "ivanivanov"
+}'
 ```
-##### Невалидные данные (HTTP 422)
+Ответ:
 ```json
 {
   "error": "Unprocessable Entity"
 }
 ```
-##### Что-то пошло не так (HTTP 500)
+### Вход
+#### Успешный ответ
+```bash
+curl --location 'localhost:8080/api/v1/login' \
+--header 'Content-Type: application/json' \
+--data '{
+  "login": "ivanivanov",
+  "password": "12345678"
+}'
+```
+Ответ:
 ```json
 {
-  "error": "Internal Server Error"
+  "token": <токен>
 }
 ```
-
-## Примеры использования
-
+#### Неверный логин или пароль
+```bash
+curl --location 'localhost:8080/api/v1/login' \
+--header 'Content-Type: application/json' \
+--data '{
+  "login": "какой-то несуществующий логин",
+  "password": "какой-то неверный пароль"
+}'
+```
+Ответ:
+```json
+{
+  "error": "Unauthorized"
+}
+```
+#### Невалидные данные
+```bash
+curl --location 'localhost:8080/api/v1/login' \
+--header 'Content-Type: application/json' \
+--data '{
+  "password": "12345678"
+}'
+```
+Ответ:
+```json
+{
+  "error": "Unprocessable Entity"
+}
+```
 ### Добавление вычисления арифметического выражения
 #### Успешный ответ
 ```bash
 curl --location 'localhost:8080/api/v1/calculate' \
+--header 'Authorization: Bearer <токен>' \
 --header 'Content-Type: application/json' \
 --data '{
   "expression": "2+2*2"
@@ -220,9 +319,24 @@ curl --location 'localhost:8080/api/v1/calculate' \
   "id": 0
 }
 ```
+#### Неверный токен
+```bash
+curl --location 'localhost:8080/api/v1/calculate' \
+--header 'Content-Type: application/json' \
+--data '{
+  "expression": "5+2"
+}'
+```
+Ожидаемый ответ:
+```json
+{
+  "error": "Unauthorized"
+}
+```
 #### Невалидные данные
 ```bash
 curl --location 'localhost:8080/api/v1/calculate' \
+--header 'Authorization: Bearer <токен>' \
 --header 'Content-Type: application/json' \
 --data '{
   "expression": "42))"
@@ -239,7 +353,8 @@ curl --location 'localhost:8080/api/v1/calculate' \
 ### Получение списка выражений
 #### Успешный ответ
 ```bash
-curl --location 'localhost:8080/api/v1/expressions'
+curl --location 'localhost:8080/api/v1/expressions' \
+--header 'Authorization: Bearer <токен>'
 ```
 Пример ответа:
 ```json
@@ -258,12 +373,23 @@ curl --location 'localhost:8080/api/v1/expressions'
     ]
 }
 ```
+#### Неверный токен
+```bash
+curl --location 'localhost:8080/api/v1/expressions'
+```
+Ожидаемый ответ:
+```json
+{
+  "error": "Unauthorized"
+}
+```
 
 
 ### Получение выражения по его идентификатору
 #### Успешный ответ
 ```bash
-curl --location 'localhost:8080/api/v1/expressions/0'
+curl --location 'localhost:8080/api/v1/expressions/0' \
+--header 'Authorization: Bearer <токен>'
 ```
 Пример ответа:
 ```json
@@ -276,85 +402,25 @@ curl --location 'localhost:8080/api/v1/expressions/0'
         }
 }
 ```
+#### Доступ к выражению запрещен
+```bash
+curl --location 'localhost:8080/api/v1/expressions/0' \
+--header 'Authorization: Bearer <неверный токен>'
+```
+Ожидаемый ответ:
+```json
+{
+  "error": "Forbidden"
+}
+```
 #### Нет такого выражения
 ```bash
-curl --location 'localhost:8080/api/v1/expressions/0'
+curl --location 'localhost:8080/api/v1/expressions/1000' \
+--header 'Authorization: Bearer <токен>'
 ```
 Ожидаемый ответ:
 ```json
 {
   "error": "Not Found"
-}
-```
-
-### Получение задачи для выполнения
-#### Успешный ответ
-```bash
-curl --location 'localhost:8080/internal/task'
-```
-Пример ответа:
-```json
-{
-    "task":
-        {
-            "id": 0,
-            "arg1": 2,
-            "arg2": 2,
-            "operation": "*",
-            "operation_time": 1000
-        }
-}
-```
-#### Нет задачи
-```bash
-curl --location 'localhost:8080/internal/task'
-```
-Пример ответа:
-```json
-{
-  "error": "Not Found"
-}
-```
-
-
-### Прием результата обработки данных
-#### Успешный ответ
-```bash
-curl -X POST --location 'localhost:8080/internal/task' \
---header 'Content-Type: application/json' \
---data '{
-  "id": 0,
-  "result": 4
-}'
-```
-Пример ответа:
-```json
-{
-  "status": "OK"
-}
-```
-#### Нет такой задачи
-```bash
-curl -X POST --location 'localhost:8080/internal/task' \
---header 'Content-Type: application/json' \
---data '{
-  "id": 200000,
-  "result": 4
-}'
-```
-Пример ответа:
-```json
-{
-  "error": "Not Found"
-}
-```
-#### Невалидные данные
-```bash
-curl -X POST --location 'localhost:8080/internal/task'
-```
-Ожидаемый ответ:
-```json
-{
-  "error": "Unprocessable Entity"
 }
 ```
